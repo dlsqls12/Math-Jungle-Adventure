@@ -8,7 +8,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Jua&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <script>
+        // Cache Busting CSS
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'style.css?v=' + new Date().getTime();
+        document.head.appendChild(link);
+    </script>
 </head>
 <body>
     <div id="app">
@@ -230,6 +236,11 @@
         </div>
     </div>
     
-    <script src="game.js"></script>
+    <script>
+        // Cache Busting JS
+        var script = document.createElement('script');
+        script.src = 'game.js?v=' + new Date().getTime();
+        document.body.appendChild(script);
+    </script>
 </body>
 </html>
