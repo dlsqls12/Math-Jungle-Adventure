@@ -7,41 +7,72 @@ class ProblemGenerator {
     static generate(grade, stage) {
         let problem = {};
         const isInfinite = stage > 10;
-        const difficultyMultiplier = isInfinite ? Math.floor((stage - 10) / 5) + 1 : 1;
+        // Infinite mode Scaling: Every 5 stages increases difficulty index
+        const difficultyScale = isInfinite ? Math.floor((stage - 11) / 5) : 0;
 
         if (grade === 1) {
-            // Grade 1: Basic Counting & Simple Add/Sub
-            if (stage <= 3) return this.generateCounting(50); // Count up to 50
-            if (stage <= 7) return this.generateAddSub(1, 9, '+'); // Single digit add
-            return this.generateAddSub(1, 9, '-'); // Single digit sub
+            // Grade 1: Counting Only (수세기)
+            // Stage 1-3: 1~10
+            // Stage 4-7: 1~30
+            // Stage 8-10: 1~50 (Skip counting)
+            // Infinite: 1~100+
+            let max = 10;
+            if (stage > 3) max = 30;
+            if (stage > 7) max = 50;
+            if (isInfinite) max = 50 + (difficultyScale * 10);
+
+            if (stage > 7 || (isInfinite && stage % 2 === 0)) {
+                return this.generateSkipCounting(max); 
+            }
+            return this.generateCounting(max);
         } 
         else if (grade === 2) {
-            // Grade 2: 2-digit Add/Sub & Basic Multiplication (2, 5)
-            if (stage <= 3) return this.generateAddSub(10, 99, '+');
-            if (stage <= 6) return this.generateAddSub(10, 99, '-');
-            if (stage <= 10) return this.generateMultiplication([2, 5]);
-            // Infinite Grade 2
-            return this.generateMultiplication([2, 3, 4, 5, 6, 7, 8, 9]); 
+            // Grade 2: Add/Sub Only (덧셈/뺄셈)
+            // Stage 1-3: Simple Add (Sum <= 10)
+            // Stage 4-6: Simple Sub (Single digit)
+            // Stage 7-8: Add (2-digit, no carry -> carry)
+            // Stage 9-10: Sub (2-digit, no borrow -> borrow)
+            if (stage <= 3) return this.generateAddSub(1, 5, '+'); 
+            if (stage <= 6) return this.generateAddSub(1, 9, '-');
+            
+            // Late Grade 2 & Infinite: 2-digit calculations
+            let min = 10;
+            let max = 20 + (isInfinite ? difficultyScale * 10 : 0);
+            
+            // Mix Add/Sub for late stages
+            const op = (stage <= 8 && !isInfinite) ? '+' : (stage <= 10 && !isInfinite) ? '-' : Math.random() > 0.5 ? '+' : '-';
+            return this.generateAddSub(min, max, op);
         }
         else if (grade === 3) {
-            // Grade 3: Advanced Mult, 3-digit Add/Sub, Division
-            if (stage <= 4) return this.generateMultiplication([3, 4, 6, 7, 8, 9]);
-            if (stage <= 7) return this.generateAddSub(100, 999, Math.random() > 0.5 ? '+' : '-');
-            return this.generateDivision(2, 9); // Simple division
+            // Grade 3: Multiplication Only (구구단)
+            // Stage 1-3: 2~5단
+            // Stage 4-7: 6~9단
+            // Stage 8-10: Mixed 2~9단
+            let tables = [2, 3, 4, 5];
+            if (stage > 3) tables = [6, 7, 8, 9];
+            if (stage > 7 || isInfinite) tables = [2, 3, 4, 5, 6, 7, 8, 9];
+            
+            return this.generateMultiplication(tables);
         }
         else if (grade === 4) {
-         // Grade 4: All Division
-         if (stage <= 4) return this.generateDivision(2, 5); // Very basic
-         if (stage <= 7) return this.generateDivision(2, 9); // Basic (Times tables)
-         return this.generateDivision(3, 12); // Advanced
-    }
+             // Grade 4: Division Only (나눗셈)
+             // Stage 1-4: Basic (Divisors 2-5)
+             // Stage 5-8: Advanced (Divisors 6-9)
+             // Stage 9-10: Random (Divisors 2-9)
+             let divisors = [2, 3, 4, 5];
+             if (stage > 4) divisors = [6, 7, 8, 9];
+             if (stage > 8 || isInfinite) divisors = [2, 3, 4, 5, 6, 7, 8, 9];
+
+             return this.generateDivision(divisors);
+        }
         
         // Fallback
         return this.generateAddSub(1, 10, '+');
     }
 
     static generateCounting(max) {
-        const num = Math.floor(Math.random() * max) + 1;
+        let num = Math.floor(Math.random() * (max - 3)) + 1;
+        if (num < 1) num = 1;
         return {
             type: 'counting',
             desc: "다음 숫자는?",
@@ -52,11 +83,42 @@ class ProblemGenerator {
         };
     }
 
+    static generateSkipCounting(max) {
+        let step = Math.floor(Math.random() * 4) + 2; // 2, 3, 4, 5
+        let start = Math.floor(Math.random() * (max - (step * 3))) + 1;
+        if (start < 1) start = 1;
+        
+        let v1 = start;
+        let v2 = start + step;
+        let v3 = start + (step * 2);
+        let answer = start + (step * 3);
+
+        return {
+            type: 'counting',
+            desc: "규칙을 찾아보세요!",
+            problem: `${v1}, ${v2}, ${v3}, ?`,
+            answer: answer,
+            options: this.generateOptions(answer),
+            hintData: { type: 'sequence', step: step, start: start, values: [v1, v2, v3] }
+        };
+    }
+
     static generateAddSub(min, max, operator) {
         let a = Math.floor(Math.random() * (max - min + 1)) + min;
         let b = Math.floor(Math.random() * (max - min + 1)) + min;
         
-        if (operator === '-' && a < b) [a, b] = [b, a];
+        // Ensure result is within reasoning bounds for Grade 1/2
+        if (operator === '+') {
+            // Cap sum if max is small (Simple addition)
+            if (max <= 10) {
+                while (a + b > 10) {
+                    a = Math.floor(Math.random() * (max - min + 1)) + min;
+                    b = Math.floor(Math.random() * (max - min + 1)) + min;
+                }
+            }
+        } else {
+             if (a < b) [a, b] = [b, a];
+        }
 
         const answer = operator === '+' ? a + b : a - b;
         return {
@@ -507,7 +569,7 @@ class Game {
     startGame(stage) {
         this.currentStage = stage;
         this.score = 0;
-        this.timer = stage > 10 ? 45 : 60;
+        this.timer = this.getStageTimeLimit(this.currentGrade, stage);
         this.currentQuestionCount = 0;
         this.hintLevel = 0;
         this.usedHintThisStage = false;
@@ -533,9 +595,34 @@ class Game {
             this.timer--;
             this.els.timer.innerText = this.timer;
             if(this.timer <= 0) {
-                this.endGame(false);
+                // Infinite Mode: Time Attack end is SUCCESS
+                if (this.currentStage > 10) {
+                    this.endGame(true);
+                } else {
+                    this.endGame(false);
+                }
             }
         }, 1000);
+    }
+
+    getStageTimeLimit(grade, stage) {
+        if (stage > 10) return 45; // Infinite mode base (Time Attack)
+        
+        if (grade === 1) return 60; // Counting
+        
+        if (grade === 2) {
+            return stage <= 6 ? 60 : 80; // Add/Sub: 60s -> 80s
+        }
+        
+        if (grade === 3) {
+            return stage <= 4 ? 60 : 80; // Mult: 60s -> 80s
+        }
+        
+        if (grade === 4) {
+            return stage <= 4 ? 60 : 90; // Div: 60s -> 90s
+        }
+        
+        return 60; // Default fallback
     }
 
     nextQuestion() {
@@ -782,25 +869,46 @@ class Game {
 
         if (success) {
             this.els.resultStars.innerText = "⭐⭐⭐";
-            document.querySelector('.result-title').innerText = "스테이지 클리어! 🎉";
-            this.playSound('correct');
-            document.getElementById('btn-next').style.display = '';
             
-            // Unlock Next Stage
+            if (this.currentStage > 10) {
+                document.querySelector('.result-title').innerText = "무한 도전 종료! 🔥";
+                // Infinite mode: Retry button instead of Next
+                document.getElementById('btn-next').style.display = 'none'; 
+                // Maybe change "Next" button text to "Retry"? Or just hide it and rely on map/restart.
+                // Actually, let's keep Next as "Replay" or hide it. 
+                // Let's hide it for now as per "Time Attack" feel, user goes back to map or restarts.
+                // Or better: Show a "Retry" button. For now, hiding 'btn-next' is safe.
+            } else {
+                document.querySelector('.result-title').innerText = "스테이지 클리어! 🎉";
+                document.getElementById('btn-next').style.display = '';
+            }
+
+            this.playSound('correct');
+            
+            // Unlock Next Stage Logic
             const currentMax = this.progress[this.currentGrade] || 0;
-            if (this.currentStage > currentMax) {
+            // Only unlock up to stage 10. Infinite stages (11+) are always open if 10 is cleared.
+            if (this.currentStage <= 10 && this.currentStage > currentMax) {
                 this.progress[this.currentGrade] = this.currentStage;
                 localStorage.setItem('mathJungle_progress', JSON.stringify(this.progress));
             }
 
-            // Award coins
+            // Award coins (Enable for all stages, including infinite)
             const mult = this.getCoinMultiplier();
             coinsGained = Math.floor((this.score / 10) * mult);
+            
+            // Bonus for Infinite Mode (Optional: higher rewards for higher difficulty)
+            if (this.currentStage > 10) {
+                 coinsGained += Math.floor((this.currentStage - 10) * 10);
+            }
+
             this.shopData.coins += coinsGained;
             this.saveShopData();
 
             // Award bonus EXP
             expGained = 5; // Stage clear bonus
+            if (this.currentStage > 10) expGained += 2; // Extra EXP for infinite
+
             if (!this.usedHintThisStage) {
                 expGained += 3;
                 this.achData.stats.noHintClears++;
@@ -817,7 +925,7 @@ class Game {
         }
 
         // Display earned rewards
-        this.els.coinsEarned.innerText = coinsGained;
+        this.els.coinsEarned.innerText = `+${coinsGained}`;
         this.els.expEarned.innerText = success ? `+${expGained} EXP` : '';
     }
 

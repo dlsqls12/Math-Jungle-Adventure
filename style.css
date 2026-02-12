@@ -142,6 +142,8 @@ body {
     transition: all 0.3s ease;
 }
 
+
+
 .problem-display {
     display: flex;
     flex-direction: column;
@@ -1046,15 +1048,18 @@ button:active {
 .shop-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    padding: 5px 12px 12px;
+    gap: 12px;
+    padding: 10px;
     overflow-y: auto;
     overflow-x: hidden;
     flex: 1;
     min-height: 0;
     align-content: start;
+    width: 100%;
     scrollbar-gutter: stable;
 }
+
+
 
 .shop-card {
     background: rgba(255,255,255,0.8);
