@@ -711,6 +711,94 @@ const LITERACY_DATA = {
     // Fallback or future data can be added here
 };
 
+/* --- Sound Engine --- */
+class SoundManager {
+    constructor() {
+        this.ctx = null;
+        this.masterGain = null;
+        this.enabled = true;
+        this.init();
+    }
+
+    init() {
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (AudioContext) {
+                this.ctx = new AudioContext();
+                this.masterGain = this.ctx.createGain();
+                this.masterGain.gain.value = 0.3; // Base volume
+                this.masterGain.connect(this.ctx.destination);
+            }
+        } catch (e) {
+            console.error("Web Audio API not supported", e);
+        }
+    }
+
+    play(type) {
+        if (!this.enabled || !this.ctx) return;
+        
+        // Resume context if suspended (browser autoplay policy)
+        if (this.ctx.state === 'suspended') {
+            this.ctx.resume().catch(e => console.error(e));
+        }
+
+        switch (type) {
+            case 'click': this.playTone(800, 'sine', 0.05, 0.1); break;
+            case 'correct': this.playMelody([523.25, 659.25, 783.99, 1046.50], 0.1, 'sine'); break; // C Major Arpeggio
+            case 'wrong': this.playTone(150, 'sawtooth', 0.3, 0.4, true); break; // Low sawtooth
+            case 'win': this.playMelody([523.25, 523.25, 523.25, 659.25, 783.99, 1046.50], 0.1, 'square'); break; // Fanfare
+            case 'lose': this.playMelody([783.99, 739.99, 698.46, 659.25], 0.3, 'triangle'); break; // Sad descent
+            case 'purchase': this.playCoin(); break;
+            case 'levelup': this.playMelody([440, 554, 659, 880, 1108], 0.08, 'sine'); break; // A Major ascent
+        }
+    }
+
+    playTone(freq, type, duration, vol, slideDown = false) {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        if (slideDown) {
+            osc.frequency.exponentialRampToValueAtTime(freq * 0.5, this.ctx.currentTime + duration);
+        }
+
+        gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.start();
+        osc.stop(this.ctx.currentTime + duration);
+    }
+
+    playMelody(notes, noteDuration, type) {
+        let now = this.ctx.currentTime;
+        notes.forEach((freq, i) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, now + (i * noteDuration));
+            
+            gain.gain.setValueAtTime(0.2, now + (i * noteDuration));
+            gain.gain.exponentialRampToValueAtTime(0.01, now + (i * noteDuration) + noteDuration);
+
+            osc.connect(gain);
+            gain.connect(this.masterGain);
+
+            osc.start(now + (i * noteDuration));
+            osc.stop(now + (i * noteDuration) + noteDuration);
+        });
+    }
+
+    playCoin() {
+        this.playTone(1200, 'sine', 0.1, 0.2);
+        setTimeout(() => this.playTone(1600, 'sine', 0.2, 0.2), 50);
+    }
+}
+
 /* --- Game Engine --- */
 class Game {
     constructor() {
@@ -731,6 +819,9 @@ class Game {
         this.currentSubject = 'math'; // 'math' or 'literacy'
         this.literacyData = null;
         this.literacyQuestionIdx = 0;
+
+        // Sound Manager
+        this.sound = new SoundManager();
 
         // UI References
         this.screens = {
@@ -791,6 +882,16 @@ class Game {
         this.bindEvents();
         this.loadAllData();
         this.updateTitleScreen();
+        
+        // Global Click Sound
+        document.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON' || e.target.classList.contains('clickable')) {
+                // Ignore if button is disabled
+                if (!e.target.disabled) {
+                    this.playSound('click');
+                }
+            }
+        });
     }
 
     loadAllData() {
@@ -1279,6 +1380,7 @@ class Game {
             btnElement.style.color = 'white';
             this.achData.stats.streakCurrent = 0;
             this.shakeScreen();
+            this.playSound('wrong'); // Sound
             this.showNextHint();
             this.usedHintThisStage = true;
             this.showCharSpeech(false);
@@ -1460,7 +1562,7 @@ class Game {
                 document.getElementById('btn-next').style.display = '';
             }
 
-            this.playSound('correct');
+            this.playSound('win'); // Sound match
             
             // Unlock Next Stage Logic
             // const currentMax = this.progress[this.currentGrade] || 0;
@@ -1504,6 +1606,7 @@ class Game {
             this.els.resultStars.innerText = "⭐";
             document.querySelector('.result-title').innerText = "시간 초과! 😢";
             document.getElementById('btn-next').style.display = 'none';
+            this.playSound('lose'); // Sound
         }
 
         // Display earned rewards
@@ -1518,7 +1621,8 @@ class Game {
     }
     
     playSound(type) {
-        console.log(`Playing sound: ${type}`);
+        // console.log(`Playing sound: ${type}`);
+        if (this.sound) this.sound.play(type);
     }
 
     togglePause(pause) {
@@ -1604,6 +1708,9 @@ class Game {
                 const bonus = LEVEL_BONUSES[Math.min(charData.level - 1, LEVEL_BONUSES.length - 1)];
                 document.getElementById('levelup-bonus').innerText = bonus.desc;
                 document.getElementById('modal-levelup').classList.remove('hidden');
+                
+                this.playSound('levelup'); // Sound
+
 
                 // Update badge
                 this.els.charLevelBadge.innerText = `Lv.${charData.level}`;
@@ -1739,6 +1846,7 @@ class Game {
         this.shopData.coins -= def.price;
         this.shopData.characters[id] = { owned: true, level: 1, exp: 0 };
         this.achData.stats.charsBought++;
+        this.playSound('purchase'); // Sound
         this.saveShopData();
         this.saveAchData();
         this.checkTitleUnlocks();
@@ -1752,6 +1860,7 @@ class Game {
         this.shopData.coins -= def.price;
         this.shopData.themes[id] = { owned: true };
         this.achData.stats.themesBought++;
+        this.playSound('purchase'); // Sound
         this.saveShopData();
         this.saveAchData();
         this.checkTitleUnlocks();
@@ -2021,6 +2130,7 @@ class Game {
              btnElement.style.background = '#F44336';
              btnElement.style.color = 'white';
              this.shakeScreen();
+             this.playSound('wrong'); // Sound
              this.showCharSpeech(false);
         }
         this.updateHUD();
