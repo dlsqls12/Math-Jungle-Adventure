@@ -767,8 +767,7 @@ class Game {
 
     loadAllData() {
         // Stage Progress
-        const saved = localStorage.getItem('mathJungle_progress');
-        this.progress = saved ? JSON.parse(saved) : { 1: 0, 2: 0, 3: 0, 4: 0 };
+        this.loadProgress();
 
         // Shop Data
         const shopSaved = localStorage.getItem('mathJungle_shop');
@@ -813,7 +812,25 @@ class Game {
 
     loadProgress() {
         const saved = localStorage.getItem('mathJungle_progress');
-        this.progress = saved ? JSON.parse(saved) : { 1: 0, 2: 0, 3: 0, 4: 0 };
+        let parsed = saved ? JSON.parse(saved) : null;
+        
+        // Migration: If old format (keys are numbers directly), wrap in 'math'
+        if (parsed && !parsed.math && !parsed.literacy) {
+             parsed = {
+                 math: parsed,
+                 literacy: { 1: 0, 2: 0, 3: 0, 4: 0 }
+             };
+             localStorage.setItem('mathJungle_progress', JSON.stringify(parsed));
+        }
+
+        if (!parsed) {
+             parsed = {
+                 math: { 1: 0, 2: 0, 3: 0, 4: 0 },
+                 literacy: { 1: 0, 2: 0, 3: 0, 4: 0 }
+             };
+        }
+        
+        this.progress = parsed;
     }
 
     bindEvents() {
@@ -970,7 +987,8 @@ class Game {
         const startY = 50;
         
         // Get progress for this grade
-        const maxCleared = this.progress[grade] || 0;
+        const subjectProgress = this.progress[this.currentSubject] || {};
+        const maxCleared = subjectProgress[grade] || 0;
         
         // Create SVG
         const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -1417,10 +1435,15 @@ class Game {
             this.playSound('correct');
             
             // Unlock Next Stage Logic
-            const currentMax = this.progress[this.currentGrade] || 0;
+            // const currentMax = this.progress[this.currentGrade] || 0;
+            const subjectProgress = this.progress[this.currentSubject] || {};
+            const currentMax = subjectProgress[this.currentGrade] || 0;
+
             // Only unlock up to stage 10. Infinite stages (11+) are always open if 10 is cleared.
             if (this.currentStage <= 10 && this.currentStage > currentMax) {
-                this.progress[this.currentGrade] = this.currentStage;
+                // this.progress[this.currentGrade] = this.currentStage;
+                if (!this.progress[this.currentSubject]) this.progress[this.currentSubject] = {};
+                this.progress[this.currentSubject][this.currentGrade] = this.currentStage;
                 localStorage.setItem('mathJungle_progress', JSON.stringify(this.progress));
             }
 
@@ -1809,9 +1832,13 @@ class Game {
 
     checkTitleUnlocks() {
         let newUnlocks = [];
+        // Use math progress for titles for now, as most are designed for the 4-grade system
+        // If we add literacy titles later, we can adjust this or pass the full object
+        const progressToCheck = this.progress.math || { 1: 0, 2: 0, 3: 0, 4: 0 };
+        
         TITLE_DEFS.forEach(t => {
             if (!this.achData.unlocked.includes(t.id)) {
-                if (t.check(this.achData.stats, this.progress)) {
+                if (t.check(this.achData.stats, progressToCheck)) {
                     this.achData.unlocked.push(t.id);
                     newUnlocks.push(t);
                 }
