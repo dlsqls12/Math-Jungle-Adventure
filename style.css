@@ -315,6 +315,126 @@ button:active {
     text-align: center;
 }
 
+/* Subject Toggle */
+.subject-toggle {
+    display: flex;
+    gap: 10px;
+    background: rgba(255,255,255,0.3);
+    padding: 5px;
+    border-radius: 30px;
+    margin-bottom: 20px;
+}
+
+.btn-subject {
+    padding: 10px 25px;
+    border: none;
+    border-radius: 25px;
+    font-family: 'Jua', sans-serif;
+    font-size: 1.2rem;
+    cursor: pointer;
+    background: transparent;
+    color: var(--text-dark);
+    transition: all 0.2s;
+}
+
+.btn-subject.active {
+    background: white;
+    color: var(--primary-dark);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    transform: scale(1.05);
+}
+
+/* Reading Screen */
+#screen-reading {
+    justify-content: flex-start;
+    align-items: center;
+    overflow-y: hidden; /* Manage scroll internally */
+    padding: 10px 0;
+}
+
+.reading-header {
+    width: 100%;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    margin-bottom: 20px;
+    position: relative;
+    padding: 5px 15px; /* Match map-header padding */
+    flex-shrink: 0;
+}
+
+.reading-header h2 {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+    color: white;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.1);
+}
+
+.reading-content-container {
+    width: 100%;
+    max-width: 800px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 30px;
+    margin-bottom: 20px;
+    overflow-y: auto;
+    text-align: left;
+}
+
+.reading-text {
+    font-family: 'Jua', sans-serif;
+    font-size: 1.3rem; /* Good size for reading */
+    line-height: 1.8;
+    color: #444;
+    white-space: pre-line; /* Preserve line breaks */
+    text-align: left; /* Ensure left alignment */
+}
+
+/* Passage Modal */
+.modal-passage {
+    width: 95%; /* Increased from 90% */
+    max-width: 1000px; /* Increased from 1000px */
+    min-width: 700px; /* Ensure minimum width */
+    height: 70vh; /* Increased from 80vh */
+    min-height: 500px; /* Ensure minimum height */
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    padding: 40px 30px;
+}
+
+.btn-close-modal {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: #ff6b6b;
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+/* Scrollable area within modal */
+.scrollable {
+    overflow-y: auto;
+    flex: 1;
+    width: 100%;
+    padding-right: 10px;
+}
+
+/* Button overrides for Literacy */
+.btn-view-passage {
+    background: var(--accent);
+    color: white;
+}
+
 /* Screens Common */
 .screen {
     width: 100%;

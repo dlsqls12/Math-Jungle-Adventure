@@ -27,6 +27,11 @@
                 <h1 class="game-title">수학 정글<br>어드벤처</h1>
                 <p class="subtitle">단계를 선택하고 모험을 떠나요!</p>
                 
+                <div class="subject-toggle">
+                    <button class="btn-subject active" data-subject="math">📐 수학</button>
+                    <button class="btn-subject" data-subject="literacy">📚 국어</button>
+                </div>
+
                 <div class="title-coin-display">🪙 <span id="title-coins">0</span></div>
                 <div class="title-equipped">
                     <span id="title-character">🐵</span>
@@ -70,6 +75,23 @@
                 </div>
             </section>
 
+            <!-- Screen 2.5: Reading Screen (Literacy Mode) -->
+            <section id="screen-reading" class="screen hidden">
+                <div class="reading-header">
+                    <button class="btn-back" id="btn-back-reading">← 뒤로</button>
+                    <h2>📖 읽어보기</h2>
+                </div>
+                <div class="reading-content-container glass-card">
+                    <h3 id="reading-title">제목</h3>
+                    <div id="reading-text" class="reading-text">
+                        <!-- Text inserted here -->
+                    </div>
+                </div>
+                <div class="reading-actions">
+                    <button class="btn-primary" id="btn-start-quiz">문제 풀기 ➡️</button>
+                </div>
+            </section>
+
             <!-- Screen 3: Game Play -->
             <section id="screen-game" class="screen hidden">
                 <div class="hud">
@@ -102,6 +124,7 @@
 
                 <div class="controls-area">
                     <button class="btn-hint" id="btn-hint">💡 힌트 보기</button>
+                    <button class="btn-hint hidden" id="btn-view-passage">📖 지문 보기</button>
                 </div>
                 
                 <!-- Pause Modal -->
@@ -194,6 +217,15 @@
                 <h2>새로운 칭호 획득!</h2>
                 <p id="title-unlock-text"></p>
                 <button class="btn-primary" id="btn-close-title-unlock">확인</button>
+            </div>
+        </div>
+
+        <!-- Passage Modal/Drawer (Overlay) -->
+        <div id="modal-passage" class="modal-overlay hidden">
+            <div class="modal-content glass-panel modal-passage">
+                <button class="btn-close-modal" id="btn-close-passage">✖</button>
+                <h3 id="modal-passage-title">제목</h3>
+                <div id="modal-passage-text" class="reading-text scrollable"></div>
             </div>
         </div>
     </div>
