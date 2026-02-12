@@ -2011,6 +2011,11 @@ class Game {
 }
 
 // Initialize Game on Load
-window.addEventListener('DOMContentLoaded', () => {
-    const game = new Game();
-});
+// Initialize Game on Load
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        window.game = new Game();
+    });
+} else {
+    window.game = new Game();
+}
